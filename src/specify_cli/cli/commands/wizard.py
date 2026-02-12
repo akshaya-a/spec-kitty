@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -116,6 +117,75 @@ def _save_raw_notes(repo_root: Path, feature_slug: str, notes: str) -> Path:
     return notes_file
 
 
+def _create_starter_wp(feature_dir: Path, spec_content: str) -> Path:
+    """Create a starter work package for research/planning."""
+    tasks_dir = feature_dir / "tasks"
+    tasks_dir.mkdir(exist_ok=True)
+    
+    # Get base commit
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        base_commit = result.stdout.strip()
+    except subprocess.CalledProcessError:
+        base_commit = "unknown"
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    wp_content = f"""---
+title: Initial Research and Planning
+lane: planned
+dependencies: []
+base_branch: main
+base_commit: {base_commit}
+created_at: '{now}'
+phase: gather
+agent: copilot
+depends_on: []
+task_id: WP01
+---
+
+# WP01: Initial Research and Planning
+
+## Objective
+
+Based on the spec.md, conduct initial research and create a detailed plan with work packages.
+
+## Context from spec.md
+
+{spec_content[:2000] if len(spec_content) > 2000 else spec_content}
+
+## Deliverables
+
+1. **Research findings** in `research/` folder
+   - Source register (sources consulted)
+   - Evidence log (key findings)
+   - Initial notes synthesis
+
+2. **Refined plan.md** with:
+   - Clear problem statement
+   - Proposed approach
+   - Success criteria
+
+3. **Additional WP files** in `tasks/` for identified work streams
+
+## Instructions
+
+1. Read spec.md and initial-notes.md in research/
+2. Conduct research on the problem space
+3. Update plan.md with findings
+4. Create WP02, WP03, etc. for each major work stream identified
+5. Move this WP to for_review when complete
+"""
+    
+    wp_file = tasks_dir / "WP01-initial-research.md"
+    wp_file.write_text(wp_content)
+    
+    return wp_file
+
+
 @app.command("new")
 def new_doc(
     non_interactive: bool = typer.Option(False, "--non-interactive", "-n", help="Skip interactive prompts"),
@@ -206,18 +276,36 @@ def new_doc(
             # Git add the notes
             subprocess.run(["git", "add", str(notes_file)], cwd=repo_root)
     
-    # Step 5: Next steps
+    # Find the feature directory
+    kitty_specs = repo_root / "kitty-specs"
+    feature_dirs = [d for d in kitty_specs.iterdir() if d.is_dir() and feature_slug in d.name]
+    feature_dir = feature_dirs[0] if feature_dirs else None
+    
+    # Step 5: Create starter WP
+    if feature_dir:
+        console.print()
+        console.print("[bold]Step 5: Creating Starter Work Package[/bold]")
+        spec_file = feature_dir / "spec.md"
+        spec_content = spec_file.read_text() if spec_file.exists() else ""
+        wp_file = _create_starter_wp(feature_dir, spec_content)
+        console.print(f"[green]✓[/green] Created {wp_file.relative_to(repo_root)}")
+        subprocess.run(["git", "add", str(wp_file)], cwd=repo_root)
+        # Commit the new files
+        subprocess.run(
+            ["git", "commit", "-m", f"feat: Initialize {feature_dir.name} with starter WP"],
+            cwd=repo_root, capture_output=True
+        )
+    
+    # Step 6: Next steps
     console.print()
     console.print(Panel(
         f"[bold green]✅ Feature Created![/bold green]\n\n"
         f"Feature: [cyan]{feature_slug}[/cyan]\n"
         f"Mission: [cyan]{mission}[/cyan]\n"
-        f"Location: [dim]kitty-specs/###-{feature_slug}/[/dim]\n\n"
-        "[bold]Next Steps:[/bold]\n"
-        "1. Edit [cyan]spec.md[/cyan] to refine the feature specification\n"
-        "2. Edit [cyan]plan.md[/cyan] to define the implementation plan\n"
-        "3. Edit [cyan]tasks.md[/cyan] to define work packages\n"
-        "4. Run [cyan]spec-kitty orchestrate[/cyan] to start parallel execution",
+        f"Location: [dim]{feature_dir.name if feature_dir else 'kitty-specs/###-' + feature_slug}[/dim]\n\n"
+        "[bold]Ready to orchestrate![/bold]\n"
+        "• WP01 (Initial Research) is ready to run\n"
+        "• Agent will research, refine plan.md, and create more WPs",
         border_style="green"
     ))
     
@@ -226,12 +314,7 @@ def new_doc(
     start_orchestrate = Confirm.ask("Start orchestration now?", default=False)
     
     if start_orchestrate:
-        # Find the actual feature directory
-        kitty_specs = repo_root / "kitty-specs"
-        feature_dirs = [d for d in kitty_specs.iterdir() if d.is_dir() and feature_slug in d.name]
-        
-        if feature_dirs:
-            feature_dir = feature_dirs[0]
+        if feature_dir:
             console.print(f"\n[cyan]Starting orchestration for {feature_dir.name}...[/cyan]")
             _run_command(["spec-kitty", "orchestrate", "--feature", feature_dir.name])
         else:
