@@ -20,6 +20,7 @@ from . import upgrade as upgrade_module
 from . import validate_encoding as validate_encoding_module
 from . import validate_tasks as validate_tasks_module
 from . import verify as verify_module
+from . import wizard as wizard_module
 
 
 def register_commands(app: typer.Typer) -> None:
@@ -41,6 +42,7 @@ def register_commands(app: typer.Typer) -> None:
     app.command(name="validate-encoding")(validate_encoding_module.validate_encoding)
     app.command(name="validate-tasks")(validate_tasks_module.validate_tasks)
     app.command()(verify_module.verify_setup)
+    app.add_typer(wizard_module.app, name="wizard", help="Interactive wizards for docs workflows")
 
 
 __all__ = ["register_commands"]
