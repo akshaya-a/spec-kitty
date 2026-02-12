@@ -12,6 +12,25 @@ The toolkit supports multiple AI coding assistants, allowing teams to use their 
 
 ---
 
+## Development Loop (for this fork)
+
+When making changes to spec-kitty itself:
+
+```bash
+# 1. Make changes in this repo
+cd /home/akannava/projects/spec-kitty
+
+# 2. Commit and push to main
+git add -A && git commit -m "fix: description" && git push
+
+# 3. Reinstall the tool from this fork
+uv tool install --force git+https://github.com/akshaya-a/spec-kitty.git
+```
+
+This fork is installed via: `uv tool install git+https://github.com/akshaya-a/spec-kitty.git`
+
+---
+
 ## Task Lane Management (Work Packages)
 
 **Flat Structure**: All work package (WP) files live in a flat `tasks/` directory. Lane status is tracked **only** in frontmatter - files never move between subdirectories.
