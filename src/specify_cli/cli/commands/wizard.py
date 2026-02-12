@@ -156,24 +156,23 @@ def new_doc(
         console.print("[bold]Step 2: Mission Type[/bold]")
         console.print("[dim]What kind of work is this?[/dim]")
         
-        mission_options = list(MISSION_CHOICES.keys())
         mission_descriptions = {
             "research": "Deep research and analysis (evidence-based)",
             "documentation": "Technical documentation (guides, references)",
             "software-dev": "Software development (code + docs)",
         }
         
-        display_options = [
-            f"{m} - {mission_descriptions.get(m, MISSION_CHOICES[m])}"
-            for m in mission_options
-        ]
+        # select_with_arrows expects Dict[key, description]
+        mission_options = {
+            k: mission_descriptions.get(k, v)
+            for k, v in MISSION_CHOICES.items()
+        }
         
-        selected_idx = select_with_arrows(
-            "Select mission type",
-            display_options,
+        mission = select_with_arrows(
+            mission_options,
+            prompt_text="Select mission type",
             console=console
         )
-        mission = mission_options[selected_idx]
     
     console.print(f"[green]✓[/green] Mission: {mission}")
     
@@ -271,12 +270,13 @@ def update_doc(
     if not feature:
         console.print()
         console.print("[bold]Step 1: Select Feature[/bold]")
-        selected_idx = select_with_arrows(
-            "Select feature to update",
-            existing,
+        # select_with_arrows expects Dict[key, description]
+        feature_options = {f: "" for f in existing}
+        feature = select_with_arrows(
+            feature_options,
+            prompt_text="Select feature to update",
             console=console
         )
-        feature = existing[selected_idx]
     
     feature_dir = repo_root / "kitty-specs" / feature
     
@@ -305,17 +305,16 @@ def update_doc(
     console.print()
     console.print("[bold]Step 3: What would you like to do?[/bold]")
     
-    actions = [
-        "Add more notes/context",
-        "View/edit spec.md",
-        "View/edit tasks",
-        "Run orchestration",
-        "Check task status",
-        "Exit",
-    ]
+    actions = {
+        "Add more notes/context": "Append to initial-notes.md",
+        "View/edit spec.md": "Display spec content",
+        "View/edit tasks": "List work packages",
+        "Run orchestration": "Start parallel agent execution",
+        "Check task status": "Show WP status",
+        "Exit": "Done",
+    }
     
-    selected_idx = select_with_arrows("Select action", actions, console=console)
-    action = actions[selected_idx]
+    action = select_with_arrows(actions, prompt_text="Select action", console=console)
     
     if action == "Add more notes/context":
         raw_notes = _prompt_raw_notes()
