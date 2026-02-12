@@ -35,11 +35,13 @@ artifacts:
     - synthesis.md         # Synthesis notes or drafts
 
 # Path conventions for this mission
+# Note: These are relative to the feature directory (kitty-specs/###-feature/)
+# The actual paths used are kitty-specs/{{feature_slug}}/research/, etc.
 paths:
-  workspace: "research/"
-  data: "data/"
-  deliverables: "findings/"
-  documentation: "reports/"
+  workspace: "research/"          # -> kitty-specs/###/research/
+  data: "research/"               # -> kitty-specs/###/research/ (evidence-log.csv, source-register.csv)
+  deliverables: "."               # -> kitty-specs/###/ (findings.md lives here)
+  documentation: "."              # -> kitty-specs/###/ (research.md lives here)
 
 # Validation rules
 validation:
